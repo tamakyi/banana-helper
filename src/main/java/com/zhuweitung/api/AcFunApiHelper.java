@@ -13,13 +13,15 @@ import com.zhuweitung.signin.Token;
 import com.zhuweitung.util.HttpUtil;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * AcFun API常用工具类
  * @author zhuweitung
- * @create 2021/4/18 
+ * @create 2021/4/18
  */
 @Log4j2
 public class AcFunApiHelper {
@@ -91,6 +93,19 @@ public class AcFunApiHelper {
     }
 
     /**
+     * 香蕉余额减少
+     *
+     * @param reduceNum
+     * @return void
+     * @author zhuweitung
+     * @date 2022/10/21
+     */
+    public static void reduceBananaBalance(int reduceNum) {
+        Acer acer = Acer.getInstance();
+        acer.setBanana(Math.max(0, acer.getBanana() - reduceNum));
+    }
+
+    /**
      * @description 获取可以投的香蕉数
      * @param laveNum 剩余投蕉数
      * @return int
@@ -99,16 +114,23 @@ public class AcFunApiHelper {
      */
     public static int throwBanana(int laveNum, VideoBase videoBase) {
         int throwNum = Math.min(getBananaBalance(), PER_VIDEO_BANANA_NUM);
-
         Map<String, String> params = new HashMap<>();
         params.put("resourceId", videoBase.getAc() + "");
-        params.put("count", PER_VIDEO_BANANA_NUM + "");
+        params.put("count", throwNum + "");
         params.put("resourceType", videoBase.getType() + "");
-        JsonObject responseJson = HttpUtil.doPost(AcFunApi.VIDEO_THROWBANANA.getUrl(), params);
+        Properties properties = new Properties();
+        properties.setProperty("referer", "https://www.acfun.cn/v/ac" + videoBase.getAc());
+        JsonObject responseJson = HttpUtil.doPost(AcFunApi.VIDEO_THROWBANANA.getUrl(), params, properties);
         int responseCode = responseJson.get("result").getAsInt();
+        String errorMsg = null;
+        try {
+            errorMsg = responseJson.get("error_msg").getAsString();
+        } catch (Exception e) {
+        }
         if (responseCode == 0) {
-            log.info("在视频：{}，给{}喂了{}根大香蕉~", videoBase.getTitle(), videoBase.getUpName(), PER_VIDEO_BANANA_NUM);
+            log.info("在视频：{}，给{}喂了{}根大香蕉~", videoBase.getTitle(), videoBase.getUpName(), throwNum);
             laveNum -= throwNum;
+            reduceBananaBalance(throwNum);
             addVideo(TYPE_BANANA, videoBase.getAc());
 
             //点赞
@@ -121,6 +143,8 @@ public class AcFunApiHelper {
                 danmu(videoBase);
             }
 
+        } else if (StringUtils.isNotBlank(errorMsg)) {
+            log.debug("投蕉出错：{}", errorMsg);
         } else {
             log.debug("请求{}接口出错，请稍后重试。错误请求信息：{}", AcFunApi.VIDEO_THROWBANANA.getName(), responseJson);
         }
@@ -178,9 +202,11 @@ public class AcFunApiHelper {
             params.put("subChannelName", videoBase.getSubChannelName() + "");
             params.put("type", "douga");
             params.put("videoId", videoBase.getId() + "");
-            JsonObject responseJson = HttpUtil.doPost(AcFunApi.VIDEO_SENDDANMU.getUrl(), params);
+            Properties properties = new Properties();
+            properties.setProperty("referer", "https://www.acfun.cn/v/ac" + videoBase.getAc());
+            JsonObject responseJson = HttpUtil.doPost(AcFunApi.VIDEO_SENDDANMU.getUrl(), params, properties);
             int responseCode = responseJson.get("result").getAsInt();
-            if (responseCode == 0) {
+            if (responseCode == 0 || responseCode == 128006) {
                 log.info("给视频：{} 发了条弹幕 {}", videoBase.getTitle(), danmu.getBody());
                 addVideo(TYPE_DANMU, videoBase.getAc());
             } else {
@@ -223,7 +249,7 @@ public class AcFunApiHelper {
         }
 
         //再随机获取视频
-        if (video == null) {
+        if (video == null && CollectionUtils.isNotEmpty(videos)) {
             video = videos.get((int) (Math.random() * videos.size()));
         }
 
@@ -442,12 +468,7 @@ public class AcFunApiHelper {
                 }
             }
 
-            Map<String, List<Danmu>> danmuCountMap = new HashMap<>();
-            for (Danmu _danmu : danmus) {
-                List<Danmu> list = danmuCountMap.getOrDefault(_danmu.getBody(), new ArrayList<>());
-                list.add(_danmu);
-                danmuCountMap.put(_danmu.getBody(), list);
-            }
+            Map<String, List<Danmu>> danmuCountMap = danmus.stream().collect(Collectors.groupingBy(Danmu::getBody));
             //排序
             List<Map.Entry<String, List<Danmu>>> entries = new ArrayList<>(danmuCountMap.entrySet());
             Collections.sort(entries, new Comparator<Map.Entry<String, List<Danmu>>>() {
@@ -458,9 +479,14 @@ public class AcFunApiHelper {
             });
 
             if (CollectionUtils.isNotEmpty(entries)) {
-                danmu.setBody(entries.get(0).getValue().get(0).getBody());
-                danmu.setPosition(entries.get(0).getValue().get(0).getPosition());
-                return danmu;
+                Map.Entry<String, List<Danmu>> entry = entries.get(0);
+                // 弹幕出现次数大于1次才有重复发送的必要
+                if (entry.getValue().size() > 1) {
+                    Danmu exampleDanmu = entry.getValue().get(0);
+                    danmu.setBody(exampleDanmu.getBody());
+                    danmu.setPosition(exampleDanmu.getPosition());
+                    return danmu;
+                }
             }
         }
 

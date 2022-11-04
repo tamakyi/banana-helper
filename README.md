@@ -39,23 +39,33 @@
 2. 打开浏览器，访问[A站](https://www.acfun.cn/)，并登录自己的账号；
 3. 在A站的页面上按下<kbd>F12</kbd>进入开发者工具；
 
-<img src="https://gitee.com/zhuweitung/picbed/raw/master/20210420200020.png" style="display:inline-block"/>
+<img src="https://github.com/zhuweitung/picbed/blob/main/20210420200020.png" style="display:inline-block"/>
 
 4. 根据上述图解操作后获得`acPasstoken`和`auth_key`的值，将这两个值填入仓库>`Settings`>`Secrets`中；
 
-<img src="https://gitee.com/zhuweitung/picbed/raw/master/20210419210900.png" style="display:inline-block"/>
+<img src="https://github.com/zhuweitung/picbed/blob/main/20210419210900.png" style="display:inline-block"/>
 
 5. 手动执行任务，测试配置是否正确；
 
-<img src="https://gitee.com/zhuweitung/picbed/raw/master/20210419211126.png" style="display:inline-block"/>
+<img src="https://github.com/zhuweitung/picbed/blob/main/20210419211126.png" style="display:inline-block"/>
 
-6. 使用Turbo版Server酱推送说明
+6. 执行结果推送
 
-   + 前往[sct.ftqq.com](https://sct.ftqq.com/sendkey)点击登入，创建账号。
 
-   + 点击点[SendKey](https://sct.ftqq.com/sendkey)，生成一个`Key`。将其增加到`Github Secrets`中，变量名为`SERVERPUSHKEY`
++ 使用TelegramBot推送
 
-   + [配置消息通道](https://sct.ftqq.com/forward)，选择方糖服务号，保存即可。
+  + 在Telegram中添加BotFather这个账号，然后依次发送/start /newbot 按照提示即可创建一个新的机器人。记下来给你生成的token
+  + 在Telegram中搜索userinfobot，并给它发送一条消息，它会返回给你chatid
+  + 在Github Secrets中添加`TELEGRAMBOTTOKEN`，`TELEGRAMCHATID`（注：`SERVERPUSHKEY`变量需要删除）
++ 使用PushPlus推送
+
+  + 前往[pushplus官网](https://www.pushplus.plus/)创建账号，获取`token`
+  + 在Github Secrets中添加`SERVERPUSHKEY`并将上一步获取的`token`值填入其中
++ 使用Turbo版Server酱推送说明
+
+  + 前往[sct.ftqq.com](https://sct.ftqq.com/sendkey)点击登入，创建账号。
+
+  + 点击点[SendKey](https://sct.ftqq.com/sendkey)，生成一个`Key`。将其增加到`Github Secrets`中，变量名为`SERVERPUSHKEY`
 
 7. Fork仓库后，GitHub Actions默认不自动执行任务，需要有commit记录才会激活，最简单就是修改readme.md，在文末添加空行提交，这样自动执行定时任务就激活了
 
@@ -75,7 +85,7 @@
 | isShare          | [0,1]        | 是否分享（手机端每日任务），默认`开启`                       |
 | bananaPriority   | [0,1]        | 投蕉优先级，0：优先给每日香蕉榜投蕉（TOP50），1：优先给关注的up投蕉，默认`0` |
 | followUpPriority | [uid,...]    | 关注up的投蕉优先级，up的uid可以进入up的主页获取              |
-| userAgent        | String       | UA标识，AcFun/6.39.0 (iPhone; iOS 14.3; Scale/2.00)          |
+| ~~userAgent~~    | ~~String~~   | ~~UA标识，AcFun/6.39.0 (iPhone; iOS 14.3; Scale/2.00)~~      |
 | skipUpList       | [uid,...]    | 跳过投蕉点赞弹幕up列表，一般是一些喜欢刷屏的up（我说的就是你`萌次元`） |
 
 ## 参考说明
